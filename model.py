@@ -20,20 +20,47 @@ import time
 
 
 
-def load_data(data_path,test_size):
+def load_data(data_path,test_size,n_zero_max_percentage=0.1):
     samples = []
     csvpath = os.path.join(data_path,"driving_log.csv")
+    n_zero = 0
+    n_samples = 0
     with open(csvpath) as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         for line in reader:
-            for ii,l in enumerate(line[:3]):
-                line[ii] = os.path.join(data_path,"IMG",os.path.basename(l))
-                # for each line, add a flag that indicates if image should be flipped
-                line_mod = [line[ii]] + line[3:] + ['original']
-                line_mod_flip = [line[ii]] + line[3:] + ['flip']
-                samples.append(line_mod)
-                samples.append(line_mod_flip)
+            # assume you are using the following 6 samples (center,left,right) and flipped of these
+            n_samples+=6
+            angle = float(line[3])
+            if angle == 0:
+                # check if the number of zeros exceeded
+                if n_zero/n_samples <= n_zero_max_percentage:
+                    n_zero+=6
+                    # loop through center,left,right images
+                    for ii,l in enumerate(line[:3]):
+                        
+
+                        line[ii] = os.path.join(data_path,"IMG",os.path.basename(l))
+                        # for each line, add a flag that indicates if image should be flipped
+                        line_mod = [line[ii]] + line[3:] + ['original']
+                        line_mod_flip = [line[ii]] + line[3:] + ['flip']
+                        samples.append(line_mod)
+                        samples.append(line_mod_flip)
+                else:
+                    # the number of zeros exceeded, decrement the number of sample back by -6
+                    n_samples-=6
+            else:
+                # angle is not zero
+                # loop through center,left,right images
+                for ii,l in enumerate(line[:3]):
+                    
+
+                    line[ii] = os.path.join(data_path,"IMG",os.path.basename(l))
+                    # for each line, add a flag that indicates if image should be flipped
+                    line_mod = [line[ii]] + line[3:] + ['original']
+                    line_mod_flip = [line[ii]] + line[3:] + ['flip']
+                    samples.append(line_mod)
+                    samples.append(line_mod_flip)
 
     if test_size and test_size > 0:
         train_samples, validation_samples = train_test_split(samples, test_size=test_size)
@@ -55,61 +82,39 @@ def load_data_multiple_paths(data_path_list,test_size=0.2):
 
 
 
-def generator(samples,nzero_max_percent=0.1,angle_amplifier=1, angle_correction=0.2,batch_size=32,SHUFFLE=True):
+def generator(samples,angle_amplifier=1, angle_correction=0.2,batch_size=32,SHUFFLE=True):
     num_samples = len(samples)
     while 1: # Loop forever so the generator never terminates   
 
         if SHUFFLE:
             sklearn.utils.shuffle(samples)
 
-        # cap zero steering angle so the model is not biased towards angle of 0
-       
-        n_zero_angle = 0
-        n_sample_counter = 0 
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
             images = []
             angles = []
             t_read = 0
             for batch_sample in batch_samples:
-                n_sample_counter+=1
                 path = batch_sample[0]
                 angle = batch_sample[1]
                 FLIP = (batch_sample[-1] == 'flip')
                 center_image = cv2.imread(path)
                 center_angle = float(angle)
-                if center_angle == 0:
-                    if nzero_max_percent > float(n_zero_angle)/n_sample_counter:
-                        if "left_" in path:
-                            center_angle += angle_correction
-                        elif "right_" in path: # right
-                            center_angle -= angle_correction
+        
+                if "left_" in path:
+                    center_angle += angle_correction
+                elif "right_" in path: # right
+                    center_angle -= angle_correction
 
-                        if FLIP:
-                            center_image = cv2.flip(center_image,1)
-                            center_angle = -1*center_angle
+                if FLIP:
+                    center_image = cv2.flip(center_image,1)
+                    center_angle = -1*center_angle
 
-                        center_angle = center_angle*angle_amplifier
-                        
-                        images.append(center_image)
-                        angles.append(center_angle)
-                        n_zero_angle+=1
-                else:
-                    if "left_" in path:
-                            center_angle += angle_correction
-                    elif "right_" in path: # right
-                        center_angle -= angle_correction
+                center_angle = center_angle*angle_amplifier
+                
+                images.append(center_image)
+                angles.append(center_angle)
 
-                    if FLIP:
-                        center_image = cv2.flip(center_image,1)
-                        center_angle = -1*center_angle
-
-                    center_angle = center_angle*angle_amplifier
-                    
-                    images.append(center_image)
-                    angles.append(center_angle)
-
-            # trim image to only see section with road
             X_train = np.array(images)
             y_train = np.array(angles)
             
