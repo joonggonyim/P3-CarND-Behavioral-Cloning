@@ -55,7 +55,7 @@ def load_data_multiple_paths(data_path_list,test_size=0.2):
 
 
 
-def generator(samples,nzero_max_percent=0.5,angle_amplifier=1, angle_correction=0.2,batch_size=32,SHUFFLE=True):
+def generator(samples,nzero_max_percent=0.1,angle_amplifier=1, angle_correction=0.2,batch_size=32,SHUFFLE=True):
     num_samples = len(samples)
     while 1: # Loop forever so the generator never terminates   
 
@@ -63,21 +63,23 @@ def generator(samples,nzero_max_percent=0.5,angle_amplifier=1, angle_correction=
             sklearn.utils.shuffle(samples)
 
         # cap zero steering angle so the model is not biased towards angle of 0
-        n_zero_max = int(num_samples*nzero_max_percent)
+       
         n_zero_angle = 0
+        n_sample_counter = 0 
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
             images = []
             angles = []
             t_read = 0
             for batch_sample in batch_samples:
+                n_sample_counter+=1
                 path = batch_sample[0]
                 angle = batch_sample[1]
                 FLIP = (batch_sample[-1] == 'flip')
                 center_image = cv2.imread(path)
                 center_angle = float(angle)
                 if center_angle == 0:
-                    if n_zero_angle < n_zero_max:
+                    if nzero_max_percent > float(n_zero_angle)/n_sample_counter:
                         if "left_" in path:
                             center_angle += angle_correction
                         elif "right_" in path: # right
@@ -91,8 +93,22 @@ def generator(samples,nzero_max_percent=0.5,angle_amplifier=1, angle_correction=
                         
                         images.append(center_image)
                         angles.append(center_angle)
-                        n_zero_angle += 1
-            
+                        n_zero_angle+=1
+                else:
+                    if "left_" in path:
+                            center_angle += angle_correction
+                    elif "right_" in path: # right
+                        center_angle -= angle_correction
+
+                    if FLIP:
+                        center_image = cv2.flip(center_image,1)
+                        center_angle = -1*center_angle
+
+                    center_angle = center_angle*angle_amplifier
+                    
+                    images.append(center_image)
+                    angles.append(center_angle)
+
             # trim image to only see section with road
             X_train = np.array(images)
             y_train = np.array(angles)
