@@ -20,7 +20,7 @@ import time
 
 
 
-def load_data(data_path,test_size=None):
+def load_data(data_path,test_size):
     samples = []
     csvpath = os.path.join(data_path,"driving_log.csv")
     with open(csvpath) as csvfile:
@@ -35,7 +35,7 @@ def load_data(data_path,test_size=None):
                 samples.append(line_mod)
                 samples.append(line_mod_flip)
 
-    if test_size:
+    if test_size and test_size > 0:
         train_samples, validation_samples = train_test_split(samples, test_size=test_size)
         return train_samples, validation_samples
     else :
@@ -43,7 +43,7 @@ def load_data(data_path,test_size=None):
 
     
 
-def load_data_multiple_paths(data_path_list,test_size=None):
+def load_data_multiple_paths(data_path_list,test_size=0.2):
     train_samples = []
     validation_samples = [] 
     for data_path in data_path_list:
@@ -55,11 +55,16 @@ def load_data_multiple_paths(data_path_list,test_size=None):
 
 
 
-def generator(samples, angle_correction=0.2,batch_size=32,SHUFFLE=True):
+def generator(samples,nzero_max_percent=0.5,angle_amplifier=1, angle_correction=0.2,batch_size=32,SHUFFLE=True):
     num_samples = len(samples)
     while 1: # Loop forever so the generator never terminates   
+
         if SHUFFLE:
             sklearn.utils.shuffle(samples)
+
+        # cap zero steering angle so the model is not biased towards angle of 0
+        n_zero_max = int(num_samples*nzero_max_percent)
+        n_zero_angle = 0
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
             images = []
@@ -71,23 +76,27 @@ def generator(samples, angle_correction=0.2,batch_size=32,SHUFFLE=True):
                 FLIP = (batch_sample[-1] == 'flip')
                 center_image = cv2.imread(path)
                 center_angle = float(angle)
+                if center_angle == 0:
+                    if n_zero_angle < n_zero_max:
+                        if "left_" in path:
+                            center_angle += angle_correction
+                        elif "right_" in path: # right
+                            center_angle -= angle_correction
 
-                if "left_" in path:
-                    center_angle += angle_correction
-                elif "right_" in path: # right
-                    center_angle -= angle_correction
+                        if FLIP:
+                            center_image = cv2.flip(center_image,1)
+                            center_angle = -1*center_angle
 
-                if FLIP:
-                    center_image = cv2.flip(center_image,1)
-                    center_angle = -1*center_angle
-
-                
-                
-                images.append(center_image)
-                angles.append(center_angle)
+                        center_angle = center_angle*angle_amplifier
+                        
+                        images.append(center_image)
+                        angles.append(center_angle)
+                        n_zero_angle += 1
+            
             # trim image to only see section with road
             X_train = np.array(images)
             y_train = np.array(angles)
+            
             if SHUFFLE:
                 yield sklearn.utils.shuffle(X_train, y_train)
             else:
@@ -160,20 +169,15 @@ def model_builder(crop_dim,input_shape,print_shape=True):
     return model
 
 
-# model = model_builder(crop_dim,input_shape)
 
-
-# # model = simple_model_builder(input_shape)
-# model.fit_generator(train_generator, steps_per_epoch=np.ceil(len(train_samples)/batch_size), \
-#     validation_data=validation_generator, \
-#     validation_steps=np.ceil(len(validation_samples)/batch_size), nb_epoch=3)
-
-# model.save('model.h5')
 
 
 def main():
     current_file_path = os.path.dirname(os.path.realpath(__file__))
-    data_path_list = [os.path.join(current_file_path,"data","data")]#, os.path.join(current_file_path,"data_my_driving")]
+    data_path_list = [os.path.join(current_file_path,"data","data"), 
+                      os.path.join(current_file_path,"data_my_driving",'clockwise'),
+                      os.path.join(current_file_path,"data_my_driving",'counterclockwise')]
+                      # os.path.join(current_file_path,"data_my_driving",'sides')]
 
     LOAD_IMAGE=True
 
@@ -191,6 +195,16 @@ def main():
 
     crop_dim = ((50,20),(0,0)) # ((crop_top, crop_bot) , (crop_left,crop_right))
     input_shape = (160,320,3)
+
+    model = model_builder(crop_dim,input_shape)
+
+
+
+    model.fit_generator(train_generator, steps_per_epoch=np.ceil(len(train_samples)/batch_size), \
+        validation_data=validation_generator, \
+        validation_steps=np.ceil(len(validation_samples)/batch_size), nb_epoch=3)
+
+    model.save('model.h5')
 
 
 if __name__ == '__main__':
