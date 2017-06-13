@@ -1,8 +1,8 @@
-#**Behavioral Cloning** 
+# **Behavioral Cloning** 
 
-##Writeup Template
+## Writeup
 
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
 
 ---
 
@@ -30,9 +30,9 @@ The goals / steps of this project are the following:
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
 
 ---
-###Files Submitted & Code Quality
+### Files Submitted & Code Quality
 
-####1. Submission includes all required files and can be used to run the simulator in autonomous mode
+#### 1. Submission includes all required files and can be used to run the simulator in autonomous mode
 
 My project includes the following files:
 * model.py containing the script to create and train the model
@@ -40,19 +40,19 @@ My project includes the following files:
 * model.h5 containing a trained convolution neural network 
 * writeup_report.md or writeup_report.pdf summarizing the results
 
-####2. Submission includes functional code
+#### 2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
 ```sh
 python drive.py model.h5
 ```
 
-####3. Submission code is usable and readable
+#### 3. Submission code is usable and readable
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. An appropriate model architecture has been employed
+#### 1. An appropriate model architecture has been employed
 
 My model is same as the model that appeared in the Udacity lecture video. This model is a slight modified version of the NVidia team's model that was used to drive the real car. 
 
@@ -62,24 +62,24 @@ At first, I tried designing my own model. Based on my previous experience with d
 
 Although my model worked well (train and validation loss monotonically decreased) I chose to use the nvidia model because it had less parameters, thus had less chance of overfitting and used up less resource.
 
-####2. Attempts to reduce overfitting in the model
+#### 2. Attempts to reduce overfitting in the model
 
 I initially tried to train my model with some dropout layers. As expected, the dropout layers slowed down the training process. Since I was planning on using a lot of data, I figured dropout layers would slow down the training process even more and I can worry less about overfitting due to surplus training data.
 
 I used separate training and validation data sets to train the network to see that each epoch wasn't over fitting. If the training loss monotonically decreased  with the validation loss and suddenly the validation loss increases relative to the previous epoch, I declared that epoch to be overfitting epoch and killed the training and restarted the training to train for 1 less than the overfitting epoch. 
 
-####3. Model parameter tuning
+#### 3. Model parameter tuning
 
 The model used an adam optimizer, so the learning rate was not tuned manually.
 As mentioned above, the network performance is not heavily dependent upon the model architecture. Since the model seemed to be pretty robust, the only parameter to "tune" was the number of epochs to train the network. 
 
-####4. Appropriate training data
+#### 4. Appropriate training data
 
 Since the model architecture and paramters did not affect the performance too much, my primary focus in training process was the quality and quantity of the data. In order to get the right "quantity" of data, I drove around the track to generate mroe data and performed few operations on the data to augment the data set. The quality of the data was also achieved by some pre-processing and recording data in specific locations. The details are below. 
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. Solution Design Approach
+#### 1. Solution Design Approach
 
 The overall strategy for deriving a model architecture was to ...
 
@@ -95,7 +95,7 @@ The final step was to run the simulator to see how well the car was driving arou
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
-####2. Final Model Architecture
+#### 2. Final Model Architecture
 
 The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
 
@@ -103,7 +103,7 @@ Here is a visualization of the architecture (note: visualizing the architecture 
 
 ![alt text][image1]
 
-####3. Creation of the Training Set & Training Process
+#### 3. Creation of the Training Set & Training Process
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
 
