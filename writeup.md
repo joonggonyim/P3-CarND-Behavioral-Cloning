@@ -18,9 +18,9 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./write_up_img/nvifia_model.png "Model Visualization"
-[image2]: ./write_up_img/steering_angle_distribution.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
+[image1]: ./writeup_img/nvifia_model.png "Model Visualization"
+[image2]: ./writeup_img/steering_angle_distribution.png "Grayscaling"
+[image3]: ./writeup_img/difficult_turn.jpg "Recovery Image"
 [image4]: ./examples/placeholder_small.png "Recovery Image"
 [image5]: ./examples/placeholder_small.png "Recovery Image"
 [image6]: ./examples/placeholder_small.png "Normal Image"
@@ -100,6 +100,10 @@ I initially drove the car around the track in the counter clockwise direction. W
 
 After collecting data for clockwise and counterclockwise folders, I trained the netwrok and let it drive around the track. I performed very well on the straight roads but performed very poorly on some sharp turn. Also, it had a very difficult time at one point on the track where the right side of the road turns to mud. In order to better train the network, I data for only the truns. I drove various turns in both clockwise and counterclockwise directions. This helped the network perform much better on the turns.
 
+The diffult turn is shown below.
+
+![alt text][image3]
+
 I also tried to include data set for driving on the sides and readjusting, but this caused the car to drive in zig-zag manner. Therefore, I removed this dataset for training. 
 
 #### 2. Augmenting data
@@ -114,7 +118,7 @@ As seen in the image below, the steering angle distribution is heavily centered 
 1) Large portion of the track is staright, which does not required any steering.
 2) When turning, the steering angle is not continuously offset to the left/right. The angle is steered towards the direction of the turn very shortly and it is followed by 0 degrees steering.
 
-![alt text][image3]
+
 
 The peaks around -0.2 and 0.2 degrees are due to the fact that data points for 0.2 and -0.2 degrees are derived from zero degree data. 
 
