@@ -225,7 +225,7 @@ def main():
                       os.path.join(current_file_path,"data_my_driving",'turns')]
                       # os.path.join(current_file_path,"data_my_driving",'sides')]
 
-    n_zero_max_percentage = 0.3 # 67844
+    n_zero_max_percentage = 0.5 # 67844
     train_samples,validation_samples = load_data_multiple_paths(data_path_list,n_zero_max_percentage=n_zero_max_percentage)
 
 
