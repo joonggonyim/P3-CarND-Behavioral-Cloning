@@ -59,14 +59,18 @@ def plotSteerAngleDistribution(angle_correction=0.2):
 	_,y_limit = next(gen_limit)
 
 
-	plt.figure(figsize=[10,5])
+	plt.figure(figsize=[10,8])
+
 	plt.subplot(2,1,1)
+	plt.title('Include All data')
 	plt.hist(y_nolimit,31,edgecolor='k')
-
+	
 	plt.subplot(2,1,2)
+	plt.title("Include {}% of zero-degree data".format(n_zero_max_percentage*100))
 	plt.hist(y_limit,31,edgecolor='k')
+	plt.xlabel("Steer angle (deg)")
 
-
+	plt.savefig("./writeup_img/steering_angle_distribution.png")
 def main():
 	# compareOriginalImage_and_flip()
 	plotSteerAngleDistribution()
