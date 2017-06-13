@@ -10,6 +10,7 @@ from keras.models import Sequential, Model
 from keras.layers import Cropping2D, Input, Flatten, Dense, Lambda
 from keras.layers import Activation, Dropout
 from keras.layers import Conv2D,MaxPooling2D,AveragePooling2D
+import keras.backend as K
 # ---------------------------
 import time
 # model.py
@@ -20,7 +21,7 @@ import time
 
 
 
-def load_data(data_path,test_size,n_zero_max_percentage=0.1):
+def load_data(data_path,test_size,n_zero_max_percentage):
     samples = []
     csvpath = os.path.join(data_path,"driving_log.csv")
     n_zero = 0
@@ -34,6 +35,7 @@ def load_data(data_path,test_size,n_zero_max_percentage=0.1):
             angle = float(line[3])
             if angle == 0:
                 # check if the number of zeros exceeded
+                # print(n_zero/n_samples , n_zero_max_percentage)
                 if n_zero/n_samples <= n_zero_max_percentage:
                     n_zero+=6
                     # loop through center,left,right images
@@ -70,11 +72,12 @@ def load_data(data_path,test_size,n_zero_max_percentage=0.1):
 
     
 
-def load_data_multiple_paths(data_path_list,test_size=0.2):
+def load_data_multiple_paths(data_path_list,test_size=0.2,n_zero_max_percentage=0.1):
+
     train_samples = []
     validation_samples = [] 
     for data_path in data_path_list:
-        train_samples_tmp, validation_samples_tmp = load_data(data_path,test_size)
+        train_samples_tmp, validation_samples_tmp = load_data(data_path,test_size,n_zero_max_percentage)
         train_samples += train_samples_tmp
         validation_samples += validation_samples_tmp
 
@@ -158,11 +161,6 @@ def model_builder(crop_dim,input_shape,print_shape=True):
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Dropout(0.25))
 
-    # # conv layer 3 
-    # model.add(Conv2D(64,(5,5),activation='relu'))
-    # model.add(MaxPooling2D(pool_size=(2,2)))
-    # model.add(Dropout(0.25))
-
     # Flatten the 4d tensor
     model.add(Flatten())
 
@@ -182,6 +180,11 @@ def model_builder(crop_dim,input_shape,print_shape=True):
     model.add(Dense(1))
     model.add(Dropout(0.25))
 
+    # # limits the final angle between the pre_defined range to prevent overshoot
+    # model.add(Lambda(lambda x: K.maximum(x,angle_range[0])))
+    # model.add(Lambda(lambda x: K.minimum(x,angle_range[1])))
+
+
 
     model.compile(loss='mse', optimizer='adam')
 
@@ -190,22 +193,45 @@ def model_builder(crop_dim,input_shape,print_shape=True):
     return model
 
 
+def model_builder_nvidia(crop_dim,input_shape,print_shape=True):
+    model = Sequential()
+    model.add(Cropping2D(cropping=crop_dim, input_shape=input_shape))
+    model.add(Lambda(lambda x: x/127.5 - 1.))
 
+    model.add(Conv2D(8,(5,5),strides=(2,2),activation='relu'))
+    model.add(Conv2D(36,(5,5),strides=(2,2),activation='relu'))
+    model.add(Conv2D(48,(5,5),strides=(2,2),activation='relu'))
+    model.add(Conv2D(64,(3,3),activation='relu'))
+    model.add(Conv2D(64,(3,3),activation='relu'))
 
+    model.add(Flatten())
+    model.add(Dense(100))
+    model.add(Dense(50))
+    model.add(Dense(10))
+    model.add(Dense(1))
+    
+    model.compile(loss='mse', optimizer='adam')
+
+    if print_shape: model_printer(model)
+        
+    return model
+    
 
 def main():
     current_file_path = os.path.dirname(os.path.realpath(__file__))
     data_path_list = [os.path.join(current_file_path,"data","data"), 
                       os.path.join(current_file_path,"data_my_driving",'clockwise'),
-                      os.path.join(current_file_path,"data_my_driving",'counterclockwise')]
+                      os.path.join(current_file_path,"data_my_driving",'counterclockwise'),
+                      os.path.join(current_file_path,"data_my_driving",'turns')]
                       # os.path.join(current_file_path,"data_my_driving",'sides')]
 
-    LOAD_IMAGE=True
+    n_zero_max_percentage = 0.3 # 67844
+    train_samples,validation_samples = load_data_multiple_paths(data_path_list,n_zero_max_percentage=n_zero_max_percentage)
 
-    train_samples,validation_samples = load_data_multiple_paths(data_path_list)
+
 
     # compile and train the model using the generator function
-    batch_size = 256
+    batch_size = 128
     train_generator = generator(train_samples, batch_size=batch_size)
     validation_generator = generator(validation_samples, batch_size=batch_size)
 
@@ -214,10 +240,12 @@ def main():
 
     ch, row, col = 3, 80, 320  # Trimmed image format
 
-    crop_dim = ((50,20),(0,0)) # ((crop_top, crop_bot) , (crop_left,crop_right))
+    crop_dim = ((70,25),(0,0)) # ((crop_top, crop_bot) , (crop_left,crop_right))
     input_shape = (160,320,3)
 
-    model = model_builder(crop_dim,input_shape)
+    model = model_builder_nvidia(crop_dim,input_shape)    
+
+    # model = model_builder(crop_dim,input_shape)
 
 
 
