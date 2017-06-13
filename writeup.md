@@ -18,8 +18,8 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
+[image1]: ./write_up_img/nvifia_model.png "Model Visualization"
+[image2]: ./write_up_img/steering_angle_distribution.png "Grayscaling"
 [image3]: ./examples/placeholder_small.png "Recovery Image"
 [image4]: ./examples/placeholder_small.png "Recovery Image"
 [image5]: ./examples/placeholder_small.png "Recovery Image"
@@ -77,56 +77,54 @@ As mentioned above, the network performance is not heavily dependent upon the mo
 
 Since the model architecture and paramters did not affect the performance too much, my primary focus in training process was the quality and quantity of the data. In order to get the right "quantity" of data, I drove around the track to generate mroe data and performed few operations on the data to augment the data set. The quality of the data was also achieved by some pre-processing and recording data in specific locations. The details are below. 
 
-### Model Architecture and Training Strategy
+### Data Collection and Processing details
 
-#### 1. Solution Design Approach
+#### 1. Data Collection
 
-The overall strategy for deriving a model architecture was to ...
+I think the most important part of this project was the data. The network performance increases as a function of data quality and quantity. At first, I followed the tips given in the lecture videos to collect data. I drove around the track in clockwise and counter clockwise directions. I stored these two sets of data in two separate folders called ./data_my_driving/clockwise and ./data_my_driving/counterclockwise. The given data was saved in ./data/data. As you can see, I completely separated the original given data from my own collected data because I wanted to play around with different data quality and easily be able to remove the unwanted data. For the same reason, I separated the ./data_my_driving directory into sub-directories of what kind of data I collected. 
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+The following is the list of data collection folders I created.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+- **./data_my_driving/clockwise**
+    - Normal driving around the track in clockwise direction
+    - Tried to keep the car in the middle of the lane
+- **./data_my_driving/counterclockwise**
+    - Normal driving around the track in counterclockwise direction
+    - Tried to keep the car in the middle of the lane
+- **./data_my_driving/turns**
+    - Recorded only turns (clockwise + counterclockwise)
+- **./data_my_driving/sides**
+    - Purposefully drove to the side and readjusted back to the center of the lane
 
-To combat the overfitting, I modified the model so that ...
+I initially drove the car around the track in the counter clockwise direction. When I trained the network with this data, the car kept driving slightly towards the right and this small error accumulated to drive the car off the track. In order to adjust the biased angle towards the left, I drove the car around the track in opposite direction and saved the data in the ./data_my_driving/counterclockwise. 
 
-Then I ... 
+After collecting data for clockwise and counterclockwise folders, I trained the netwrok and let it drive around the track. I performed very well on the straight roads but performed very poorly on some sharp turn. Also, it had a very difficult time at one point on the track where the right side of the road turns to mud. In order to better train the network, I data for only the truns. I drove various turns in both clockwise and counterclockwise directions. This helped the network perform much better on the turns.
 
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+I also tried to include data set for driving on the sides and readjusting, but this caused the car to drive in zig-zag manner. Therefore, I removed this dataset for training. 
 
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
+#### 2. Augmenting data
 
-#### 2. Final Model Architecture
-
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
-
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
-
-#### 3. Creation of the Training Set & Training Process
-
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+For each frame, There are three camera views (Left, Center, Right). In order to utilize all three images, I had to offset the steering angle for the Left and Right camera images. I chose the value of 0.2 degrees because it was given during the lecture and it worked. For the left images, I added the correction angle and fro right camera images, I subtracted the value. This already created three labeled data per frame. In order to get more data, I took each image and flipped them along the y-axis and multiplied the angle by -1. The flipping of the image allows the car to have good balance of the clockwise and counterclockwise driving data, thus being able to center itself to the middle of the lane better. 
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+#### 3. Data distribution
+
+As seen in the image below, the steering angle distribution is heavily centered at zero degrees. This is due to two reasons.
+1) Large portion of the track is staright, which does not required any steering.
+2) When turning, the steering angle is not continuously offset to the left/right. The angle is steered towards the direction of the turn very shortly and it is followed by 0 degrees steering.
 
 ![alt text][image3]
-![alt text][image4]
-![alt text][image5]
 
-Then I repeated this process on track two in order to get more data points.
+The peaks around -0.2 and 0.2 degrees are due to the fact that data points for 0.2 and -0.2 degrees are derived from zero degree data. 
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+When there is overpopulated zero degree steering data, the car has a hard time making sharp turns. This is because the car's driving principal is biased towards zero degrees steering. My strategy to fix this issue was to limit the percentage of zero steering data to be included in the training. 
 
-![alt text][image6]
-![alt text][image7]
+The parameter I used here was n_zero_max_percentage. If n_zero_max_percentage = 0.1, I would only allow 10% of the entire data to consist of zero degree data. I noticed that when this number is too low (little zero-degree data) the car wobbles around the track and cannot keep statble position at the center. This is because the car is trained to have very few zero degree steering. When this number is high, the car is more stable, but it has difficulties making sharp turn. In order to find the balance, I tried training the network with few different numbers and 0.3 worked the best in terms of visual performance. 
 
-Etc ....
+#### 4. Data pre-processing
+The two pre-processing strategies I took are cropping the unnecessary top and bottom of the image and normalizing the image. The cropping helps in two ways: decreases the data size, thus decreasing the model complexity, and removes unnecessary information from disturbing the learning process.
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+#### 5. Driving speed
+Although everything seemed like it should work, the car kept failing at certain turns. It seemed like the car was not turning fast enough. Then I realized the training data I took were collected at higher driving speed than the autonomous mode driving speed of 9. I increased the speed to 30 and the car drove around the track! However, the car seemed very unstable. I adjusted the speed to 20 mph and the car drove around the track with much more stability.
 
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
