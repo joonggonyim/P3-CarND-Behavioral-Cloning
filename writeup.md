@@ -54,25 +54,28 @@ The model.py file contains the code for training and saving the convolution neur
 
 ####1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+My model is same as the model that appeared in the Udacity lecture video. This model is a slight modified version of the NVidia team's model that was used to drive the real car. 
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+![alt text][image1]
+
+At first, I tried designing my own model. Based on my previous experience with designing a CNN network and playing around with different model for this project, I quickly realized model architecture has very small impact on how well the car is trained to drive. As long a there are "enough" convolutions and "enough" dense layers, the models would perform very similarly. 
+
+Although my model worked well (train and validation loss monotonically decreased) I chose to use the nvidia model because it had less parameters, thus had less chance of overfitting and used up less resource.
 
 ####2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+I initially tried to train my model with some dropout layers. As expected, the dropout layers slowed down the training process. Since I was planning on using a lot of data, I figured dropout layers would slow down the training process even more and I can worry less about overfitting due to surplus training data.
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+I used separate training and validation data sets to train the network to see that each epoch wasn't over fitting. If the training loss monotonically decreased  with the validation loss and suddenly the validation loss increases relative to the previous epoch, I declared that epoch to be overfitting epoch and killed the training and restarted the training to train for 1 less than the overfitting epoch. 
 
 ####3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer, so the learning rate was not tuned manually.
+As mentioned above, the network performance is not heavily dependent upon the model architecture. Since the model seemed to be pretty robust, the only parameter to "tune" was the number of epochs to train the network. 
 
 ####4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
-
-For details about how I created the training data, see the next section. 
+Since the model architecture and paramters did not affect the performance too much, my primary focus in training process was the quality and quantity of the data. In order to get the right "quantity" of data, I drove around the track to generate mroe data and performed few operations on the data to augment the data set. The quality of the data was also achieved by some pre-processing and recording data in specific locations. The details are below. 
 
 ###Model Architecture and Training Strategy
 
